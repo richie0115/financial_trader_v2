@@ -5,6 +5,7 @@
 import yfinance as yf
 import datetime
 import numpy as np
+import pandas as pd
 
 def get_stock_info(ticker_symbol):
     """
@@ -52,20 +53,25 @@ def download_stock_data(ticker_symbol, filename):
 
     """
     today = datetime.date.today()
-    data = yf.download([ticker_symbol], start="2020-01-01", end=today)
-
+    data = yf.download([ticker_symbol], start="2020-01-01", end=today, auto_adjust=False)
     if data is not None:
         data.to_csv(filename)
+        df = pd.read_csv(filename,skiprows=(1,2))
+        df.rename(columns={'Price': 'Date'}, inplace=True)
+        df.insert(0, 'Stock', ticker)
+        df.to_csv(filename, index=False)
         print(f"Historical data for {ticker_symbol} saved to {filename}")
     else:
         print("Failed to download or save historical data.")
-        
+
 if __name__ == "__main__":
     ticker = "AAPL"
-    stock_data = get_stock_info(ticker)
-    historical_data = get_historical_data(ticker)
-    data = download_stock_data(ticker, "AAPL_historical_data.csv")
-    if stock_data:
-        print(f"Stock information for {ticker}:")
-        for key, value in stock_data.items():
-            print(f"{key}: {value}")
+    store_file_name = f"{ticker}_historical_data.csv"
+    download_stock_data(ticker, store_file_name)
+
+    print(f"successfully download {ticker}:")
+    
+    # start analysis
+    data = pd.read_csv(store_file_name, parse_dates=True)
+    close = data['Adj Close']
+    print(close)
