@@ -103,4 +103,8 @@ if __name__ == "__main__":
     close = data['Adj Close']
     rsi14_rma = calc_rsi(close, lambda s: s.ewm(alpha=1 / 14).mean(), length=14) 
     data['RSI14'] = rsi14_rma
+    rsi28_rma = calc_rsi(close, lambda s: s.ewm(alpha=1 / 28).mean(), length=28)
+    data['RSI28'] = rsi28_rma
+    rsi50_rma = calc_rsi(close, lambda s: s.ewm(alpha=1 / 50).mean(), length=50)
+    data['RSI50'] = rsi50_rma
     data.to_csv(store_file_name,index=False)
