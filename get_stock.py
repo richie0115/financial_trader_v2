@@ -6,6 +6,7 @@ import yfinance as yf
 import datetime
 import numpy as np
 import pandas as pd
+from typing import Callable
 
 def get_stock_info(ticker_symbol):
     """
@@ -64,6 +65,32 @@ def download_stock_data(ticker_symbol, filename):
     else:
         print("Failed to download or save historical data.")
 
+def calc_rsi(over: pd.Series, fn_roll: Callable, length=14) -> pd.Series:
+    # Get the difference in price from previous step
+    delta = over.diff()
+    # Get rid of the first row, which is NaN since it did not have a previous row to calculate the differences
+    delta = delta[1:] 
+
+    # Make the positive gains (up) and negative gains (down) Series
+    up, down = delta.clip(lower=0), delta.clip(upper=0).abs()
+
+    roll_up, roll_down = fn_roll(up), fn_roll(down)
+    rs = roll_up / roll_down
+    rsi = 100.0 - (100.0 / (1.0 + rs))
+
+    # Avoid division-by-zero if `roll_down` is zero
+    # This prevents inf and/or nan values.
+    rsi[:] = np.select([roll_down == 0, roll_up == 0, True], [100, 0, rsi])
+    # rsi = rsi.case_when([((roll_down == 0), 100), ((roll_up == 0), 0)])  # This alternative to np.select works only for pd.__version__ >= 2.2.0.
+    rsi.name = 'rsi'
+
+    # Assert range
+    valid_rsi = rsi[length - 1:]
+    assert ((0 <= valid_rsi) & (valid_rsi <= 100)).all()
+    # Note: rsi[:length - 1] is excluded from above assertion because it is NaN for SMA.
+
+    return rsi
+
 if __name__ == "__main__":
     ticker = "AAPL"
     store_file_name = f"{ticker}_historical_data.csv"
@@ -72,6 +99,8 @@ if __name__ == "__main__":
     print(f"successfully download {ticker}:")
     
     # start analysis
-    data = pd.read_csv(store_file_name, parse_dates=True)
+    data = pd.read_csv(store_file_name)
     close = data['Adj Close']
-    print(close)
+    rsi14_rma = calc_rsi(close, lambda s: s.ewm(alpha=1 / 14).mean(), length=14) 
+    data['RSI14'] = rsi14_rma
+    data.to_csv(store_file_name,index=False)
