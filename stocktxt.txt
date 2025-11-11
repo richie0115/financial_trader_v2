@@ -1,0 +1,7 @@
+conda activate stockan
+cd C:\Users\USER\Desktop\stock\getstock
+feature_engineering.py -> 產生 final_features.json
+
+hyperparameter_tuning.py -> 產生 best_hyperparameters.json
+
+model_prediction.py -> 載入兩個 .json 檔案，執行最終預測。
